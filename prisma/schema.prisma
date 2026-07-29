@@ -1,0 +1,339 @@
+// Prisma Schema for Productivity Tracker PostgreSQL Database
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id                    Int             @id @default(autoincrement())
+  uid                   String          @unique
+  email                 String          @unique
+  name                  String?
+  passwordHash          String?         @map("password_hash")
+  isEmailVerified       Boolean         @default(false) @map("is_email_verified")
+  verificationToken     String?         @map("verification_token")
+  resetPasswordToken    String?         @map("reset_password_token")
+  resetPasswordExpires String?         @map("reset_password_expires")
+  googleId              String?         @map("google_id")
+  avatarUrl             String?         @map("avatar_url")
+  sheetsSpreadsheetId   String?         @map("sheets_spreadsheet_id")
+  sheetsAutoSync        Boolean         @default(false) @map("sheets_auto_sync")
+  createdAt             DateTime        @default(now()) @map("created_at")
+  updatedAt             DateTime        @default(now()) @updatedAt @map("updated_at")
+
+  dailyTracker          DailyTracker[]
+  habits                Habit[]
+  goals                 Goal[]
+  projects              Project[]
+  studySessions         StudySession[]
+  healthLogs            HealthLog[]
+  journalEntries        JournalEntry[]
+  achievements          Achievement[]
+  monthlyReviews        MonthlyReview[]
+  weeklyReviews         WeeklyReview[]
+  notifications         Notification[]
+  settings              Settings?
+  tasks                 Task[]
+  focusSessions         FocusSession[]
+  sheetSyncLogs         SheetSyncLog[]
+
+  @@index([email])
+  @@index([uid])
+  @@map("users")
+}
+
+model DailyTracker {
+  id                Int      @id @default(autoincrement())
+  userId            Int      @map("user_id")
+  userUid           String   @map("user_uid")
+  date              String   // YYYY-MM-DD
+  mood              String?
+  energyLevel       Int?     @map("energy_level")
+  focusScore        Int?     @map("focus_score")
+  productivityScore Int?     @map("productivity_score")
+  waterIntakeMl     Int      @default(0) @map("water_intake_ml")
+  sleepHours        Float?   @map("sleep_hours")
+  notes             String?
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @default(now()) @updatedAt @map("updated_at")
+
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, date])
+  @@index([userUid])
+  @@map("daily_tracker")
+}
+
+model Habit {
+  id                Int        @id @default(autoincrement())
+  userId            Int        @map("user_id")
+  userUid           String     @map("user_uid")
+  title             String
+  description       String?
+  category          String     @default("Health")
+  targetFrequency   String     @default("Daily") @map("target_frequency")
+  targetDaysPerWeek Int        @default(7) @map("target_days_per_week")
+  color             String     @default("#3b82f6")
+  icon              String     @default("zap")
+  streak            Int        @default(0)
+  bestStreak        Int        @default(0) @map("best_streak")
+  createdAt         DateTime   @default(now()) @map("created_at")
+  updatedAt         DateTime   @default(now()) @updatedAt @map("updated_at")
+
+  user              User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  logs              HabitLog[]
+
+  @@index([userId])
+  @@map("habits")
+}
+
+model Goal {
+  id              Int      @id @default(autoincrement())
+  userId          Int      @map("user_id")
+  userUid         String   @map("user_uid")
+  title           String
+  description     String?
+  category        String   @default("Personal")
+  status          String   @default("In Progress") // In Progress, Completed, On Hold, Cancelled
+  targetDate      String?  @map("target_date")
+  progressPercent Int      @default(0) @map("progress_percent")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @default(now()) @updatedAt @map("updated_at")
+
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status])
+  @@map("goals")
+}
+
+model Project {
+  id          Int      @id @default(autoincrement())
+  userId      Int      @map("user_id")
+  userUid     String   @map("user_uid")
+  name        String
+  description String?
+  status      String   @default("Active") // Active, Completed, Archived
+  color       String   @default("#6366f1")
+  dueDate     String?  @map("due_date")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at")
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status])
+  @@map("projects")
+}
+
+model StudySession {
+  id                  Int      @id @default(autoincrement())
+  userId              Int      @map("user_id")
+  userUid             String   @map("user_uid")
+  subject             String
+  topic               String?
+  durationMinutes     Int      @map("duration_minutes")
+  technique           String   @default("Pomodoro")
+  effectivenessRating Int?     @map("effectiveness_rating")
+  notes               String?
+  completedAt         DateTime @default(now()) @map("completed_at")
+  createdAt           DateTime @default(now()) @map("created_at")
+
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, completedAt])
+  @@map("study_sessions")
+}
+
+model HealthLog {
+  id             Int      @id @default(autoincrement())
+  userId         Int      @map("user_id")
+  userUid        String   @map("user_uid")
+  date           String   // YYYY-MM-DD
+  stepsCount     Int      @default(0) @map("steps_count")
+  caloriesBurned Int      @default(0) @map("calories_burned")
+  sleepQuality   String?  @map("sleep_quality")
+  workoutMinutes Int      @default(0) @map("workout_minutes")
+  workoutType    String?  @map("workout_type")
+  weightKg       Float?   @map("weight_kg")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @default(now()) @updatedAt @map("updated_at")
+
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, date])
+  @@map("health_logs")
+}
+
+model JournalEntry {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @map("user_id")
+  userUid   String   @map("user_uid")
+  title     String
+  content   String
+  date      String   // YYYY-MM-DD
+  mood      String?
+  tags      String?
+  isPrivate Boolean  @default(true) @map("is_private")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, date])
+  @@map("journal_entries")
+}
+
+model Achievement {
+  id          Int      @id @default(autoincrement())
+  userId      Int      @map("user_id")
+  userUid     String   @map("user_uid")
+  title       String
+  description String?
+  badgeIcon   String   @default("trophy") @map("badge_icon")
+  category    String   @default("Milestone")
+  unlockedAt  DateTime @default(now()) @map("unlocked_at")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("achievements")
+}
+
+model MonthlyReview {
+  id            Int      @id @default(autoincrement())
+  userId        Int      @map("user_id")
+  userUid       String   @map("user_uid")
+  monthYear     String   @map("month_year") // YYYY-MM
+  highlights    String?
+  challenges    String?
+  goalsAchieved String?  @map("goals_achieved")
+  rating        Int?
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @default(now()) @updatedAt @map("updated_at")
+
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, monthYear])
+  @@map("monthly_reviews")
+}
+
+model WeeklyReview {
+  id                 Int      @id @default(autoincrement())
+  userId             Int      @map("user_id")
+  userUid            String   @map("user_uid")
+  weekStartDate      String   @map("week_start_date") // YYYY-MM-DD
+  wins               String?
+  improvements       String?
+  productivityRating Int?     @map("productivity_rating")
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @default(now()) @updatedAt @map("updated_at")
+
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, weekStartDate])
+  @@map("weekly_reviews")
+}
+
+model Notification {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @map("user_id")
+  userUid   String   @map("user_uid")
+  title     String
+  message   String
+  type      String   @default("info")
+  isRead    Boolean  @default(false) @map("is_read")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead])
+  @@map("notifications")
+}
+
+model Settings {
+  id                   Int      @id @default(autoincrement())
+  userId               Int      @unique @map("user_id")
+  userUid              String   @unique @map("user_uid")
+  theme                String   @default("dark")
+  dailyTargetFocusMins Int      @default(120) @map("daily_target_focus_mins")
+  notificationsEnabled Boolean  @default(true) @map("notifications_enabled")
+  emailDigest          String   @default("weekly") @map("email_digest")
+  sheetsAutoSync       Boolean  @default(false) @map("sheets_auto_sync")
+  createdAt            DateTime @default(now()) @map("created_at")
+  updatedAt            DateTime @default(now()) @updatedAt @map("updated_at")
+
+  user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("settings")
+}
+
+model Task {
+  id          Int       @id @default(autoincrement())
+  userId      Int       @map("user_id")
+  userUid     String    @map("user_uid")
+  title       String
+  description String?
+  category    String    @default("Personal")
+  priority    String    @default("Medium")
+  dueDate     String?   @map("due_date")
+  isCompleted Boolean   @default(false) @map("is_completed")
+  completedAt DateTime? @map("completed_at")
+  subtasks    String    @default("[]")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @default(now()) @updatedAt @map("updated_at")
+
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isCompleted])
+  @@map("tasks")
+}
+
+model HabitLog {
+  id            Int      @id @default(autoincrement())
+  habitId       Int      @map("habit_id")
+  userUid       String   @map("user_uid")
+  completedDate String   @map("completed_date")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  habit         Habit    @relation(fields: [habitId], references: [id], onDelete: Cascade)
+
+  @@index([habitId, completedDate])
+  @@map("habit_logs")
+}
+
+model FocusSession {
+  id              Int      @id @default(autoincrement())
+  userId          Int      @map("user_id")
+  userUid         String   @map("user_uid")
+  title           String   @default("Focus Session")
+  category        String   @default("Work")
+  durationMinutes Int      @map("duration_minutes")
+  completedAt     DateTime @default(now()) @map("completed_at")
+  notes           String?
+
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, completedAt])
+  @@map("focus_sessions")
+}
+
+model SheetSyncLog {
+  id         Int      @id @default(autoincrement())
+  userId     Int      @map("user_id")
+  userUid    String   @map("user_uid")
+  status     String
+  rowsSynced Int      @default(0) @map("rows_synced")
+  message    String?
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("sheet_sync_logs")
+}

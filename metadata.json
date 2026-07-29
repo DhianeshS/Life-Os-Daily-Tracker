@@ -1,0 +1,6 @@
+{
+  "name": "LifeOS - Personal Productivity Tracker",
+  "description": "A personal productivity tracking application with study tracker, project tracker, task management, habit tracker, focus timer, analytics, and Google Sheets synchronization.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
